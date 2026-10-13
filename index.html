@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Base-edit Sanger Seq Analyzer</title>
+<style>
+:root{--bg:#f6f7f5;--fg:#1b1f1d;--mut:#66706b;--card:#fff;--bd:#dde2de;--ac:#2f6f5e;--ac2:#e6f1ed;--warn:#c0392b;--mis:#e69f00;--syn:#aab;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141715;--fg:#e9ece9;--mut:#98a39d;--card:#1d211e;--bd:#343a36;--ac:#5fb59d;--ac2:#22332d;--warn:#ff7b6b;--syn:#667}}
+:root[data-theme="dark"]{--bg:#141715;--fg:#e9ece9;--mut:#98a39d;--card:#1d211e;--bd:#343a36;--ac:#5fb59d;--ac2:#22332d;--warn:#ff7b6b;--syn:#667}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 56px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}p.s{color:var(--mut);margin:0 0 20px;max-width:720px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.step{display:flex;align-items:center;gap:10px;font-weight:650;margin-bottom:10px}
+.step i{font-style:normal;width:24px;height:24px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-size:.8rem}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:block;font-size:.8rem;color:var(--mut)}
+input,textarea,select{width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--ac);outline-offset:-1px}
+textarea{font-family:ui-monospace,monospace;font-size:.8rem;min-height:74px;resize:vertical}
+.drop{position:relative;overflow:hidden;display:block;border:1.5px dashed var(--bd);border-radius:10px;padding:16px;text-align:center;color:var(--mut);cursor:pointer;transition:.15s}
+.drop:hover,.drop.on{border-color:var(--ac);background:var(--ac2);color:var(--fg)}.drop b{color:var(--ac)}.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;font-size:0}
+ul.fl{list-style:none;margin:8px 0 0;padding:0}ul.fl li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--bd);border-radius:8px;margin-top:6px;font-size:.85rem}
+ul.fl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{background:none;border:0;color:var(--mut);font-size:1.2rem;line-height:1;cursor:pointer;padding:2px 8px;border-radius:6px;margin:0}.x:hover{background:var(--ac2);color:var(--warn)}
+.ctl{margin:10px 0 0;padding:10px 12px;background:var(--ac2);border-radius:8px;font-size:.78rem;color:var(--fg)}.ctl div{display:flex;gap:6px}.ctl div+div{margin-top:2px}.ctl b{color:var(--ac)}
+.act{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0 18px}
+button{font:inherit;font-weight:600;border-radius:9px;padding:10px 20px;cursor:pointer;border:1px solid var(--ac);background:var(--ac);color:#fff}
+button.sec{background:transparent;color:var(--fg);border-color:var(--bd)}button.sec:hover{border-color:var(--warn);color:var(--warn)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.82rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}th{color:var(--mut);font-weight:600}
+tr.flag td{background:color-mix(in srgb,var(--warn) 15%,transparent);font-weight:600}
+.cv{width:100%;height:170px;display:block;margin:8px 0}.msg{color:var(--warn)}small{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}.chip{background:color-mix(in srgb,var(--warn) 15%,transparent);border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:600}.chip.ok{background:var(--ac2);color:var(--ac)}
+</style></head><body><main>
+<h1>🧬 Base-edit Sanger Seq Analyzer</h1>
+<p class="s">Paste your CDS and guides (sense or antisense), add .abi reads, and get the % of every base at each protospacer position plus the codon and amino-acid change. Runs in your browser; nothing is uploaded, and refreshing resets everything.</p>
+<div class="card"><div class="step"><i>1</i>CDS and guides</div>
+<label>Full CDS (5'→3', starting at the A of ATG)<textarea id="cds" spellcheck="false" autocomplete="off" style="min-height:110px"></textarea></label>
+<label style="margin-top:10px">Guides, one per line (optional name first, e.g. <i>g1 GGCCACC…</i>)<textarea id="guides" spellcheck="false" autocomplete="off"></textarea></label></div>
+<div class="card"><div class="step"><i>2</i>Sequencing reads <small id="cnt" style="font-weight:400"></small></div>
+<label class="drop" id="dz"><b>Drop .abi files here</b> or click to browse<input id="fs" type="file" multiple autocomplete="off"></label>
+<ul class="fl" id="fl"></ul>
+<div style="margin-top:14px;font-size:.8rem;color:var(--mut)">Optional: unedited control</div>
+<label class="drop" id="dc" style="padding:10px"><b>Add control .abi</b><input id="fc" type="file" autocomplete="off"></label>
+<ul class="fl" id="cl"></ul>
+<div class="ctl"><div><b>1</b>Upload a trace from the unedited (WT) sample, sequenced with the same primer.</div><div><b>2</b>Its non-reference signal at each protospacer position becomes that position's baseline.</div><div><b>3</b>The baseline is subtracted from every edited read (% changed = sample − control), and calls are tested against zero noise.</div><div><b>4</b>Your files are never modified; without a control, background is estimated from flanking bases only.</div></div></div>
+<div class="card"><div class="step"><i>3</i>Settings</div><div class="g">
+<label>Protospacer positions to report<input id="win" value="1-20" autocomplete="off"></label>
+<label>Guide mismatches allowed<input id="mm" type="number" value="2" min="0" max="5" autocomplete="off"></label>
+<label>Call edited if ≥ (%)<input id="th" type="number" value="5" autocomplete="off"></label></div></div>
+<div class="act"><button id="run" disabled>Analyze</button><button id="reset" class="sec" type="button">Reset all</button><span id="err" class="msg"></span></div>
+<div id="out"></div>
+<small>Semi-quantitative: Sanger has a ≈5% detection limit. Edited = % changed ≥ threshold and p&lt;0.01 vs. background noise. Confirm key alleles by NGS.</small>
+<script>
+const $=id=>document.getElementById(id),CM={A:'T',C:'G',G:'C',T:'A'};
+const cp=x=>CM[x]||'N',rc=s=>[...s].reverse().map(cp).join('');
+const GC="FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",BO='TCAG';
+const aa=c=>{const i=[...c].map(x=>BO.indexOf(x));return i.includes(-1)?'X':GC[16*i[0]+4*i[1]+i[2]]};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function abif(buf){const v=new DataView(buf),u=new Uint8Array(buf);
+ const str=(o,n)=>String.fromCharCode(...u.subarray(o,o+n));
+ if(str(0,4)!=='ABIF')throw Error('Not an ABIF/.ab1 file');
+ const n=v.getInt32(18),off=v.getInt32(26),d={};
+ for(let i=0;i<n;i++){const p=off+28*i,k=str(p,4)+v.getInt32(p+4),dsz=v.getInt32(p+16);
+  d[k]={cnt:v.getInt32(p+12),o:dsz<=4?p+20:v.getInt32(p+20)}}
+ const need=k=>{if(!d[k])throw Error('Missing tag '+k);return d[k]};
+ const T=(a,b)=>d[a]||need(b),pb=T('PBAS2','PBAS1'),calls=str(pb.o,pb.cnt).toUpperCase();
+ const fwo=str(need('FWO_1').o,4).toUpperCase();
+ const pl=T('PLOC2','PLOC1'),ploc=[];for(let i=0;i<pl.cnt;i++)ploc.push(v.getUint16(pl.o+2*i));
+ const tr={};for(let j=0;j<4;j++){const e=T('DATA'+(9+j),'DATA'+(1+j)),a=new Int16Array(e.cnt);
+  for(let i=0;i<e.cnt;i++)a[i]=v.getInt16(e.o+2*i);tr[fwo[j]]=a}
+ return{calls:calls.slice(0,ploc.length),ploc,tr}}
+
+function revread(r){const L=r.tr.A.length,tr={};
+ for(const b of 'ACGT')tr[b]=r.tr[cp(b)].slice().reverse();
+ return{calls:rc(r.calls),ploc:r.ploc.map(p=>L-1-p).reverse(),tr}}
+
+function sw(a,b){const m=a.length,n=b.length,W=n+1,H=new Int16Array((m+1)*W),T=new Uint8Array((m+1)*W);
+ let best=0,bi=0,bj=0;
+ for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
+  const s=(a[i-1]===b[j-1]&&a[i-1]!=='N')?2:-3,x=i*W+j;
+  let h=0,t=0,dg=H[x-W-1]+s,up=H[x-W]-5,lf=H[x-1]-5;
+  if(dg>h){h=dg;t=1}if(up>h){h=up;t=2}if(lf>h){h=lf;t=3}
+  H[x]=h;T[x]=t;if(h>best){best=h;bi=i;bj=j}}
+ const map=new Array(n).fill(-1);let i=bi,j=bj,al=0,ma=0;
+ while(i>0&&j>0&&H[i*W+j]>0){const t=T[i*W+j];
+  if(t===1){map[j-1]=i-1;al++;if(a[i-1]===b[j-1])ma++;i--;j--}else if(t===2)i--;else j--}
+ return{score:best,map,ident:al?ma/al:0}}
+
+function onRef(r,ref){let a=sw(r.calls,ref),rd=r,o='forward';
+ const rv=revread(r),b=sw(rv.calls,ref);if(b.score>a.score){a=b;rd=rv;o='reverse'}
+ const amp=(ri,base)=>{if(ri<0)return NaN;const p=rd.ploc[ri],t=rd.tr[base];let m=0;
+  for(let k=Math.max(0,p-2);k<=Math.min(t.length-1,p+2);k++)m=Math.max(m,t[k]);return m};
+ return{amp:(c,base)=>amp(a.map[c-1],base),o,ident:a.ident,rd,map:a.map}}
+
+const BC={A:'#2e9e4f',C:'#2f6fd6',G:'#888',T:'#d63b3b'};
+function erfc(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+.3275911*x),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return s>0?1-y:1+y}
+function noise(t,ref,G){const lo=Math.min(...G.co),hi=Math.max(...G.co),v=[];
+ for(let c=Math.max(1,lo-80);c<=Math.min(ref.length,hi+80);c++){if(c>=lo-2&&c<=hi+2)continue;
+  const q=['A','C','G','T'].map(b=>t.amp(c,b));if(q.some(isNaN))continue;const tot=q[0]+q[1]+q[2]+q[3];if(tot<=0)continue;
+  v.push(100*(tot-t.amp(c,ref[c-1]))/tot)}
+ if(v.length<20)return{m:0,sd:3};v.sort((a,b)=>a-b);const k=v.slice(0,Math.floor(v.length*.95)),m=k.reduce((a,b)=>a+b)/k.length;
+ return{m,sd:Math.max(Math.sqrt(k.reduce((a,b)=>a+(b-m)**2,0)/k.length),.5)}}
+const pv=(x,N)=>.5*erfc((x-N.m)/N.sd/Math.SQRT2);
+function chrom(cv,t,G){const {rd,map}=t,lo=Math.min(...G.co),hi=Math.max(...G.co),ids=[];
+ for(let c=lo-5;c<=hi+5;c++)if(c>=1&&map[c-1]>=0)ids.push(c);if(!ids.length)return;
+ const W=cv.width=1800,H=cv.height=340,x=cv.getContext('2d'),fg=getComputedStyle(document.body).color;
+ const a=rd.ploc[map[ids[0]-1]]-10,b=rd.ploc[map[ids[ids.length-1]-1]]+10;let mx=1;
+ for(const k of 'ACGT')for(let q=a;q<=b;q++)mx=Math.max(mx,rd.tr[k][q]||0);
+ const X=q=>(q-a)/(b-a)*W,Y=v=>H-40-v/mx*(H-90);x.font='26px sans-serif';x.textAlign='center';
+ ids.forEach(c=>{const r=map[c-1],p=rd.ploc[r],g=c>=lo&&c<=hi;
+  if(g){x.fillStyle='rgba(47,140,110,.18)';x.fillRect(X(p)-W/(2*ids.length),0,W/ids.length,H)}
+  x.fillStyle=BC[rd.calls[r]]||fg;x.fillText(rd.calls[r],X(p),28);if(g){x.fillStyle=fg;x.fillText(G.co.indexOf(c)+1,X(p),H-8)}});
+ for(const k of 'ACGT'){x.strokeStyle=BC[k];x.lineWidth=3;x.beginPath();
+  for(let q=a;q<=b;q++){const px=X(q),py=Y(rd.tr[k][q]||0);q===a?x.moveTo(px,py):x.lineTo(px,py)}x.stroke()}}
+
+const B='ACGT';
+function parseGuides(t){return t.split(/\n/).map(l=>l.trim()).filter(Boolean).map((l,i)=>{const k=l.split(/[\s,;:]+/);
+ return{name:k.length>1?k.slice(0,-1).join(' '):'guide'+(i+1),seq:k[k.length-1].toUpperCase().replace(/U/g,'T').replace(/[^ACGT]/g,'')}}).filter(g=>g.seq.length>=15)}
+function locate(cds,g,mm){const n=g.length;let b=null;
+ for(const [st,q] of [['+',g],['-',rc(g)]])for(let i=0;i+n<=cds.length;i++){let m=0;
+  for(let j=0;j<n&&m<=mm;j++)if(cds[i+j]!==q[j])m++;if(m<=mm&&(!b||m<b.m))b={st,i,m}}
+ if(!b)return null;const {st,i,m}=b,seg=cds.substr(i,n);
+ return st==='+'?{st,lab:'sense',mm:m,tseq:seg,co:[...Array(n)].map((_,k)=>i+1+k),pam:cds.substr(i+n,3)}
+  :{st,lab:'antisense',mm:m,tseq:rc(seg),co:[...Array(n)].map((_,k)=>i+n-k),pam:rc(cds.substring(Math.max(i-3,0),i))}}
+function pcs(t,c,st){const v=[...B].map(x=>t.amp(c,st==='+'?x:cp(x))),tot=v.reduce((a,b)=>a+b);return tot>0?v.map(x=>100*x/tot):null}
+function analyze(t,G,cds,N,ctrl,th,w){return G.co.map((c,i)=>{const pos=i+1;if(pos<w[0]||pos>w[1])return null;
+ const gb=G.seq[i],pc=pcs(t,c,G.st);if(!pc)return{pos,gb,none:1};
+ const cc=ctrl&&pcs(ctrl,c,G.st),raw=100-pc[B.indexOf(gb)];
+ const alt=[...B].map((x,j)=>({x,pct:Math.max(pc[j]-(cc?cc[j]:0),0)})).filter(a=>a.x!==gb).sort((a,b)=>b.pct-a.pct);
+ const chg=alt.reduce((q,a)=>q+a.pct,0),idx=Math.floor((c-1)/3),ps=(c-1)%3,cod=cds.substr(idx*3,3),ok=cod.length===3,wt=ok?aa(cod):'?';
+ alt.forEach(a=>{const m=cod.split('');m[ps]=G.st==='+'?a.x:cp(a.x);a.aa=ok?aa(m.join('')):'?'});
+ const sw=alt.filter((a,k)=>k===0||a.pct>=1).map(a=>`${gb}→${a.x} · <b>${wt}${idx+1}${a.aa}</b>${a.aa===wt?' (syn)':a.aa==='*'?' (stop)':''} ${a.pct.toFixed(1)}%${G.st==='-'?` <small>(CDS ${cp(gb)}&gt;${cp(a.x)})</small>`:''}`).join('<br>');
+ const p=cc?pv(chg,{m:0,sd:N.sd}):pv(raw,N);return{pos,gb,pc,chg,alt,cch:cc?100-cc[B.indexOf(gb)]:null,top:`${gb}→${alt[0].x} ${wt}${idx+1}${alt[0].aa}`,codn:idx+1,cod,wt,sw,p,sig:chg>=th&&p<.01}})}
+
+const st={files:[],ctrl:null},fmt=n=>n>1e6?(n/1e6).toFixed(1)+' MB':Math.max(1,Math.round(n/1e3))+' KB';
+const li=(f,a)=>`<li><span>${esc(f.name)} <small>${fmt(f.size)}</small></span><button class="x" ${a} title="Remove" aria-label="Remove ${esc(f.name)}">×</button></li>`;
+function render(){$('fl').innerHTML=st.files.map((f,i)=>li(f,`data-i="${i}"`)).join('');
+ $('cl').innerHTML=st.ctrl?li(st.ctrl,'data-c="1"'):'';$('dc').style.display=st.ctrl?'none':'block';
+ $('cnt').textContent=st.files.length?`· ${st.files.length} file${st.files.length>1?'s':''}`:'';
+ $('run').disabled=!($('cds').value.trim()&&$('guides').value.trim()&&st.files.length)}
+function add(list,one){const all=[...list],a=all.filter(f=>/\.(abi|ab1)$/i.test(f.name));$('err').textContent=a.length<all.length?'Only .abi or .ab1 files can be added.':'';
+ if(one){if(a[0])st.ctrl=a[0]}else a.forEach(f=>{if(!st.files.some(g=>g.name===f.name&&g.size===f.size))st.files.push(f)});render()}
+function reset(){$('cds').value='';$('guides').value='';$('win').value='1-20';$('mm').value=2;$('th').value=5;
+ st.files=[];st.ctrl=null;$('fs').value='';$('fc').value='';$('out').innerHTML='';$('err').textContent='';render()}
+$('fl').onclick=e=>{const b=e.target.closest('button');if(b){st.files.splice(+b.dataset.i,1);render()}};
+$('cl').onclick=e=>{if(e.target.closest('button')){st.ctrl=null;$('fc').value='';render()}};
+$('fs').onchange=e=>{add(e.target.files);e.target.value=''};$('fc').onchange=e=>{add(e.target.files,1);e.target.value=''};
+for(const [z,one] of [['dz',0],['dc',1]]){const d=$(z);
+ d.ondragover=e=>{e.preventDefault();d.classList.add('on')};d.ondragleave=()=>d.classList.remove('on');
+ d.ondrop=e=>{e.preventDefault();d.classList.remove('on');add(e.dataTransfer.files,one)}}
+$('cds').oninput=$('guides').oninput=render;$('reset').onclick=reset;
+addEventListener('pageshow',e=>{if(e.persisted)reset()});reset();
+
+// ---------- Heatmap ----------
+const HM={},ORD=['A','T','G','C'],B4='ACGT',REF='#d9d9d9';
+const MET={bases:'% of each base (A / T / G / C rows)',tot:'% changed (all bases)',A:'% changed to A',C:'% changed to C',G:'% changed to G',T:'% changed to T'};
+const PAL={'White → Blue':['#ffffff','#08519c'],'White → Red':['#ffffff','#b2182b'],'Blue → Yellow → Red':['#2c7bb6','#ffffbf','#d7191c'],'Viridis':['#440154','#3b528b','#21908d','#5dc863','#fde725']};
+const hx=c=>[1,3,5].map(k=>parseInt(c.substr(k,2),16)),lum=c=>.299*c[0]+.587*c[1]+.114*c[2];
+function rgbAt(p,t){const n=p.length-1,q=Math.min(Math.max(t,0),1)*n,i=Math.min(Math.floor(q),n-1),f=q-i,a=hx(p[i]),b=hx(p[i+1]);return a.map((v,k)=>Math.round(v+(b[k]-v)*f))}
+function cellVal(r,m){if(r.none)return NaN;if(m==='tot')return r.chg;const a=r.alt.find(a=>a.x===m);return a?a.pct:NaN}
+const hmMat=k=>{const m=$('hm-m').value;return HM[k].S.map(s=>({name:s.name,rows:s.rows,v:s.rows.map(r=>cellVal(r,m))}))};
+const fv=v=>v<10?v.toFixed(1):String(Math.round(v)),smax=a=>+$('hm-max').value||Math.max(5,Math.ceil(Math.max(0,...a)/5)*5);
+function moi(){const t=$('hm-sw').value.trim().toUpperCase().replace(/\s/g,''),pp=$('hm-pos').value.trim(),m=t.match(/^([A-Z*])?(\d+)([A-Z*])$/);
+ return m?{wt:m[1]||'',n:+m[2],to:m[3],pos:pp?+pp:0,txt:t}:null}
+function isMoi(r,o){if(!o||r.none||r.codn!==o.n||(o.wt&&r.wt!==o.wt)||(o.pos&&r.pos!==o.pos))return null;return r.alt.find(a=>a.x!==r.gb&&a.aa===o.to)||null}
+function hmNote(){const el=$('hm-t'),raw=$('hm-sw').value.trim(),o=moi();el.style.color='';
+ if(!raw){el.textContent='Which codon switch are you looking for, and at which protospacer base position? Enter e.g. K312E and 18 to highlight it in red.';return}
+ if(!o){el.style.color='var(--warn)';el.textContent='Use the format: wild-type amino acid, codon number, new amino acid (e.g. K312E or 312E).';return}
+ const L=[];for(const k in HM){const S=HM[k].S;S[0].rows.forEach((r,j)=>{const a0=isMoi(r,o);if(!a0)return;
+  L.push(`<b>${esc(o.txt)}</b> at protospacer pos ${r.pos} (${r.gb}→${a0.x}) in ${esc(k)}: `+S.map(q=>{const a=isMoi(q.rows[j],o);return `${esc(q.name)} <b>${a?a.pct.toFixed(1)+'%':'n/a'}</b>`}).join(' · '))})}
+ if(L.length){el.style.color='#d00000';el.innerHTML=L.join('<br>')}
+ else{el.style.color='var(--warn)';el.textContent=`No base in your guides${o.pos?' at position '+o.pos:''} can give ${o.txt}. Check the codon number, amino acids and position.`}}
+function setup(cv,W,H){const x=cv.getContext('2d');cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(2,0,0,2,0,0);
+ x.fillStyle='#fff';x.fillRect(0,0,W,H);x.textBaseline='middle';return x}
+function legend(x,lx,top,lh,pal,mx,lab){const g=x.createLinearGradient(0,top,0,top+lh);pal.forEach((c,i)=>g.addColorStop(1-i/(pal.length-1),c));
+ x.fillStyle=g;x.fillRect(lx,top,14,lh);x.strokeStyle='#999';x.lineWidth=1;x.strokeRect(lx,top,14,lh);
+ x.fillStyle='#111';x.textAlign='left';x.font='11px sans-serif';[0,.5,1].forEach(f=>x.fillText(String(+(mx*f).toFixed(1)),lx+20,top+lh*(1-f)));x.fillText(lab,lx,top-10)}
+function head(x,r,j,lw,cw,hot){x.textAlign='center';x.font='11px sans-serif';x.fillStyle=hot?'#d00000':'#555';x.fillText(r.pos,lw+j*cw+cw/2,36);
+ x.font='bold 12px sans-serif';x.fillStyle=hot?'#d00000':'#111';x.fillText(r.gb,lw+j*cw+cw/2,50)}
+function foot(x,o,H){if(o){x.fillStyle='#d00000';x.textAlign='left';x.font='bold 12px sans-serif';x.fillText('Red box = '+o.txt+(o.pos?' (pos '+o.pos+')':''),4,H-10)}}
+function drawHM(cv,k){const {G}=HM[k],M=hmMat(k),m=$('hm-m').value,pal=PAL[$('hm-p').value],sv=$('hm-v').checked,o=moi(),
+ all=M.flatMap(s=>s.v).filter(v=>!isNaN(v)),mx=smax(all),cw=40,ch=30,top=58,r0=M[0].rows,n=r0.length;
+ cv.width=1;let x=cv.getContext('2d');x.font='12px sans-serif';const lw=Math.ceil(Math.min(240,Math.max(60,...M.map(s=>x.measureText(s.name).width))+16)),
+ W=Math.ceil(lw+n*cw+120),H=top+M.length*ch+16+(o?20:0);x=setup(cv,W,H);
+ const nm=t=>{let u=t;x.font='12px sans-serif';while(x.measureText(u).width>lw-16&&u.length>3)u=u.slice(0,-2);return u===t?t:u+'…'};
+ x.fillStyle='#111';x.textAlign='left';x.font='bold 13px sans-serif';x.fillText(`${G.name} · ${G.lab} · ${MET[m]}`,4,12);
+ r0.forEach((r,j)=>head(x,r,j,lw,cw,M.some(s=>isMoi(s.rows[j],o))));
+ M.forEach((s,i)=>{x.textAlign='right';x.fillStyle='#111';x.font='12px sans-serif';x.fillText(nm(s.name),lw-8,top+i*ch+ch/2);
+  s.v.forEach((v,j)=>{const X=lw+j*cw,Y=top+i*ch,hit=isMoi(s.rows[j],o),red=()=>{if(hit){x.strokeStyle='#d00000';x.lineWidth=3;x.strokeRect(X+1.5,Y+1.5,cw-3,ch-3)}};x.textAlign='center';
+   if(isNaN(v)){x.fillStyle='#eee';x.fillRect(X+1,Y+1,cw-2,ch-2);x.fillStyle='#999';x.font='11px sans-serif';x.fillText('–',X+cw/2,Y+ch/2);red();return}
+   const c=rgbAt(pal,v/mx);x.fillStyle=`rgb(${c})`;x.fillRect(X+1,Y+1,cw-2,ch-2);
+   if(s.rows[j].sig){x.strokeStyle='#000';x.lineWidth=2;x.strokeRect(X+2,Y+2,cw-4,ch-4)}
+   if(sv){x.fillStyle=lum(c)<140?'#fff':'#111';x.font='11px sans-serif';x.fillText(fv(v),X+cw/2,Y+ch/2)}red()})});
+ legend(x,lw+n*cw+24,top,Math.min(160,Math.max(90,M.length*ch)),pal,mx,'%');foot(x,o,H)}
+function drawBases(cv,k,si){const {G,S}=HM[k],rows=S[si].rows,o=moi(),pal=PAL[$('hm-p').value],sv=$('hm-v').checked,n=rows.length,cw=40,ch=30,top=58,lw=40,
+ mx=smax(rows.flatMap(r=>r.none?[]:ORD.filter(b=>b!==r.gb).map(b=>r.pc[B4.indexOf(b)]))),W=lw+n*cw+130,H=top+4*ch+16+(o?20:0),x=setup(cv,W,H);
+ x.fillStyle='#111';x.textAlign='left';x.font='bold 13px sans-serif';x.fillText(`${S[si].name} · ${k} · ${G.lab} · ${MET.bases}`,4,12);
+ rows.forEach((r,j)=>{head(x,r,j,lw,cw,!!isMoi(r,o));
+  ORD.forEach((b,i)=>{const X=lw+j*cw,Y=top+i*ch;x.textAlign='center';
+   if(r.none){x.fillStyle='#eee';x.fillRect(X+1,Y+1,cw-2,ch-2);x.fillStyle='#999';x.font='11px sans-serif';x.fillText('–',X+cw/2,Y+ch/2);return}
+   const v=r.pc[B4.indexOf(b)],ref=b===r.gb,c=ref?null:rgbAt(pal,v/mx);
+   x.fillStyle=ref?REF:`rgb(${c})`;x.fillRect(X+1,Y+1,cw-2,ch-2);
+   if(sv){x.fillStyle=ref||lum(c)>=140?'#111':'#fff';x.font='11px sans-serif';x.fillText(fv(v),X+cw/2,Y+ch/2)}
+   const a=isMoi(r,o);if(a&&a.x===b){x.strokeStyle='#d00000';x.lineWidth=3;x.strokeRect(X+1.5,Y+1.5,cw-3,ch-3)}})});
+ x.fillStyle='#111';x.textAlign='right';x.font='bold 13px sans-serif';ORD.forEach((b,i)=>x.fillText(b,lw-10,top+i*ch+ch/2));
+ const lx=lw+n*cw+24;legend(x,lx,top,100,pal,mx,'% (non-ref)');x.fillStyle=REF;x.fillRect(lx,top+116,14,14);x.fillStyle='#111';x.textAlign='left';x.font='11px sans-serif';x.fillText('reference',lx+20,top+123);foot(x,o,H)}
+const tsvBases=(k,si)=>{const rows=HM[k].S[si].rows;return ['Base\t'+rows.map(r=>`${r.pos} (${r.gb})`).join('\t')].concat(ORD.map(b=>b+'\t'+rows.map(r=>r.none?'':r.pc[B4.indexOf(b)].toFixed(1)).join('\t'))).join('\n')};
+const tsvMat=k=>{const M=hmMat(k);return ['Sample\t'+M[0].rows.map(r=>`${r.pos} (${r.gb})`).join('\t')].concat(M.map(s=>s.name+'\t'+s.v.map(v=>isNaN(v)?'':v.toFixed(2)).join('\t'))).join('\n')};
+function hmCard(){if(!Object.keys(HM).length)return '';
+ return `<div class="card" id="hm"><div class="step">Heatmap <small style="font-weight:400">· black box = edited call, red box = codon switch of interest, – = n/a</small></div><div class="g">`+
+ `<label>Value<select id="hm-m">${Object.entries(MET).map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label>`+
+ `<label>Color scale<select id="hm-p">${Object.keys(PAL).map(t=>`<option>${t}</option>`).join('')}</select></label>`+
+ `<label>Scale max (%)<input id="hm-max" type="number" min="1" placeholder="auto" autocomplete="off"></label>`+
+ `<label>Codon switch of interest<input id="hm-sw" placeholder="e.g. K312E" autocomplete="off"></label>`+
+ `<label>Base position (protospacer)<input id="hm-pos" type="number" min="1" max="30" placeholder="e.g. 18" autocomplete="off"></label>`+
+ `<label style="display:flex;align-items:end;gap:8px;padding-bottom:8px"><input id="hm-v" type="checkbox" checked style="width:auto;margin:0">Show values</label></div>`+
+ `<p id="hm-t" style="font-size:.85rem;margin:10px 0 0"></p><div id="hm-pn"></div><div id="hm-s" style="font-size:.8rem;color:var(--mut);margin-top:6px"></div></div>`}
+function hmInit(){const ks=Object.keys(HM);if(!ks.length)return;let P=[];
+ const draw=()=>{P.forEach((p,n)=>p.si<0?drawHM($('hmc'+n),p.k):drawBases($('hmc'+n),p.k,p.si));hmNote()};
+ const render=()=>{const m=$('hm-m').value;P=[];ks.forEach(k=>{if(m==='bases')HM[k].S.forEach((_,si)=>P.push({k,si}));else P.push({k,si:-1})});
+  $('hm-pn').innerHTML=P.map((p,n)=>`<div class="tw" style="background:#fff;border-radius:8px;margin-top:12px;padding:6px"><canvas class="hmc" id="hmc${n}"></canvas></div><div class="act" style="margin:8px 0 2px"><button class="sec" data-a="png" data-n="${n}">Download PNG</button><button class="sec" data-a="copy" data-n="${n}">Copy image</button><button class="sec" data-a="tsv" data-n="${n}">Export data to Prism</button></div>`).join('');draw()};
+ $('hm-m').oninput=render;['hm-p','hm-max','hm-v','hm-sw','hm-pos'].forEach(i=>$(i).oninput=draw);render();
+ $('hm').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)return;const n=+b.dataset.n,p=P[n],s=$('hm-s');
+  try{if(b.dataset.a==='tsv'){const t=p.si<0?tsvMat(p.k):tsvBases(p.k,p.si);
+    try{await navigator.clipboard.writeText(t);s.textContent='Copied. Paste into a Prism data table.'}
+    catch(_){s.innerHTML='Your browser blocked copying. Select all below and copy:<textarea readonly rows="6" style="font-size:.75rem">'+esc(t)+'</textarea>'}}
+  else{const bl=await new Promise(r=>$('hmc'+n).toBlob(r,'image/png'));
+   if(b.dataset.a==='png'){const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=(p.k+'_'+(p.si<0?'heatmap':HM[p.k].S[p.si].name)).replace(/\W+/g,'_')+'.png';a.click();s.textContent='PNG saved. If nothing happened, right-click the heatmap and choose Save image as.'}
+   else{await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);s.textContent='Image copied.'}}}
+  catch(err){s.textContent='Your browser blocked that. Right-click the heatmap and choose Copy or Save image.'}}}
+$('run').onclick=async()=>{const er=$('err'),out=$('out'),btn=$('run');er.textContent='';out.innerHTML='';
+ for(const k in HM)delete HM[k];btn.disabled=true;btn.textContent='Analyzing…';await new Promise(r=>setTimeout(r,30));
+ try{
+  const cds=$('cds').value.toUpperCase().replace(/[^ACGT]/g,''),gl=parseGuides($('guides').value),files=st.files;
+  const w=$('win').value.split('-').map(Number),th=+$('th').value;
+  if(cds.length<30)throw Error('Paste the CDS.');if(!gl.length)throw Error('Enter at least one guide (≥15 nt).');
+  const Gs=[],nf=[];gl.forEach(g=>{const L=locate(cds,g.seq,+$('mm').value);L?Gs.push({...g,...L,typed:g.seq,seq:L.tseq}):nf.push(g.name)});
+  let h='',wn=[];if(cds.length%3)wn.push('CDS length is not a multiple of 3');if(!cds.startsWith('ATG'))wn.push("CDS does not start with ATG");
+  if(nf.length)wn.push('Guide(s) not found in CDS on either strand (within the allowed mismatches): '+nf.join(', '));
+  if(wn.length)h+=`<div class="card msg">${wn.map(esc).join('<br>')}</div>`;
+  if(!Gs.length)throw Error('None of the guides match the CDS.');
+  let ctrl=null;if(st.ctrl)ctrl=onRef(abif(await st.ctrl.arrayBuffer()),cds);
+  let n=0;const jobs=[];
+  for(const f of files){
+   try{
+    const t=onRef(abif(await f.arrayBuffer()),cds),cov=t.map.map((r,j)=>r>=0?j+1:0).filter(Boolean);
+    if(!cov.length)throw Error('read does not align to the CDS');
+    h+=`<div class="card"><b>${esc(f.name)}</b> <small>· read ${t.o} · identity ${(100*t.ident).toFixed(0)}% · covers CDS ${cov[0]}–${cov[cov.length-1]} (codons ${Math.ceil(cov[0]/3)}–${Math.ceil(cov[cov.length-1]/3)})${ctrl?' · control subtracted':''}</small>`;
+    let used=0;
+    for(const G of Gs){
+     if(!G.co.slice(w[0]-1,w[1]).every(c=>t.map[c-1]>=0))continue;used++;
+     const N=noise(t,cds,G),rows=analyze(t,G,cds,N,ctrl,th,w).filter(Boolean),id='cv'+(n++),sg=rows.filter(r=>r.sig);
+     h+=`<h3 style="font-size:1rem;margin:16px 0 2px">${esc(G.name)} <small>· ${G.lab} · CDS ${Math.min(...G.co)}–${Math.max(...G.co)} · PAM ${esc(G.pam)} · background ${N.m.toFixed(1)}±${N.sd.toFixed(1)}%</small>${G.mm?` <small class="msg">⚠ ${G.mm} mismatch vs. your guide (${[...G.typed].map((x,k)=>x!==G.seq[k]?'pos '+(k+1)+': typed '+x+', CDS has '+G.seq[k]:'').filter(Boolean).join('; ')})</small>`:''}</h3>`+
+      `<div class="chips">${sg.length?sg.map(r=>`<span class="chip">Pos ${r.pos} · ${r.top} · ${r.chg.toFixed(0)}%</span>`).join(''):'<span class="chip ok">No edits above threshold</span>'}</div><canvas id="${id}" class="cv"></canvas>`+
+      `<div class="tw"><table><tr><th>Pos</th><th>Guide base</th><th>%A</th><th>%C</th><th>%G</th><th>%T</th>${ctrl?'<th>Ctrl % changed</th>':''}<th>% changed</th><th>Codon #</th><th>WT codon (AA)</th><th>Possible switch → amino acid</th><th>p</th><th>Call</th></tr>`+
+      rows.map(r=>r.none?`<tr><td>${r.pos}</td><td>${r.gb}</td><td colspan="11">no coverage</td></tr>`:
+       `<tr class="${r.sig?'flag':''}"><td>${r.pos}</td><td>${r.gb}</td>${r.pc.map(x=>`<td>${x.toFixed(1)}</td>`).join('')}${ctrl?`<td>${r.cch.toFixed(1)}</td>`:''}<td>${r.chg.toFixed(1)}</td><td>${r.codn}</td><td>${r.cod} (${r.wt})</td><td style="white-space:normal">${r.sw}</td><td>${r.p.toExponential(1)}</td><td>${r.sig?'edited':''}</td></tr>`).join('')+`</table></div>`;
+     jobs.push([id,t,G]);(HM[G.name]=HM[G.name]||{G,S:[]}).S.push({name:f.name.replace(/\.[^.]+$/,''),rows})}
+    if(!used)h+=`<p class="msg">No guide window is fully covered by this read.</p>`;
+    h+=`</div>`;
+   }catch(e){h+=`<div class="card msg">${esc(f.name)}: ${esc(e.message)}</div>`}}
+  out.innerHTML=h+hmCard()+`<small>Base % are in guide orientation (5'→3' of the protospacer); for antisense guides the CDS-sense change is in brackets. Chromatogram is in CDS orientation with the protospacer shaded.</small>`;
+  jobs.forEach(([id,t,G])=>chrom($(id),t,G));hmInit();out.scrollIntoView({behavior:'smooth'});
+ }catch(e){er.textContent=e.message}
+ btn.textContent='Analyze';render()};
+</script></main></body></html>
